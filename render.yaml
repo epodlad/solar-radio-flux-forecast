@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: solar-radio-flux-forecast
+    runtime: python
+    plan: free
+    buildCommand: pip install .
+    startCommand: python -m uvicorn f107forecast.api:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    envVars:
+      - key: F107_PROVIDER
+        value: noaa
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: F107_REFRESH_SECONDS
+        value: 300
