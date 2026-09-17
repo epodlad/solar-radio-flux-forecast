@@ -1,6 +1,6 @@
 # Provenance
 
-Only Canadian Penticton observations are used, distributed through NOAA SWPC by default or through the optional Government of Canada adapter. The snapshot description below applies to the Canadian adapter; NOAA cache policy is described separately below. In live operation each successful fetch records UTC retrieval time, source URL, SHA256, record count and rejected-line diagnostics. Snapshots are immutable and named by hash; the validated latest table is atomically replaced. Numerical corrections to a source snapshot cause a new model replay and forecast identity. Forecast identity includes snapshot hash, configuration and software version. Deployment commit is attached separately.
+Only Canadian Penticton observations are used, distributed through NOAA SWPC by default or through the optional Canadian archive adapter. The snapshot description below applies to the Canadian adapter; NOAA cache policy is described separately below. In live operation each successful fetch records UTC retrieval time, source URL, SHA256, record count and rejected-line diagnostics. Snapshots are immutable and named by hash; the validated latest table is atomically replaced. Numerical corrections to a source snapshot cause a new model replay and forecast identity. Forecast identity includes snapshot hash, configuration and software version. Deployment commit is attached separately.
 
 Measurement time is not publication time. The Canadian archive does not supply the history of publication delays and revisions required for a true as-issued replay. Historical accuracy metrics are explicitly archive-vintage hindcasts.
 
@@ -22,3 +22,5 @@ is disabled pending reconciliation. No adjusted flux, Julian date or Carrington 
 Set F107_PROVIDER=canada to use the earlier Canadian adapter; caches are separate.
 NOAA storage is one rolling 90-day cache and issued forecast files retained for 30 days.
 This limits operational reproducibility to the retention window; future validation datasets should be archived separately with explicit provenance.
+
+Afternoon update: NOAA time tags are preserved. The fractional-day correction assumes the NOAA-reported elapsed time; differences from the seasonal Penticton schedule remain unresolved. Applied status, noon cutoff, evening observation and per-method cutoffs are included in the forecast API.

@@ -1,6 +1,6 @@
 """Single-worker FastAPI service. Network refresh is bounded, cached and serialized."""
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import asyncio
 import hashlib
@@ -21,11 +21,21 @@ from .operational import make_issue
 
 log = logging.getLogger('f107')
 
+def next_check(now):
+    """Two UTC checks with 45-minute publication allowance; no data polling."""
+    for offset in (0,1):
+        day=now+timedelta(days=offset)
+        late_hour=23 if 3<=day.month<=10 else 22
+        for hour in (20,late_hour):
+            candidate=day.replace(hour=hour,minute=45,second=0,microsecond=0)
+            if candidate>now:return candidate
+
+
 class Store:
     def __init__(self,folder=None):
         self.folder=Path(folder or os.getenv('F107_DATA_DIR','data'))
         self.lock=threading.Lock();self.checked=0.;self.error=None;self.result=None;self.observations=[];self.meta={}
-        self.ttl=max(60,int(os.getenv('F107_REFRESH_SECONDS','300')))
+        self.next_check_utc=None
         self.provider=os.getenv('F107_PROVIDER','noaa')
         if self.provider not in ('noaa','canada'):raise ValueError('Unknown F107_PROVIDER')
         self.config=Config()
@@ -63,7 +73,9 @@ class Store:
         result['latest_measurement']=records[-1].json()
         result['provenance']={**meta,'software_version':__version__,'git_commit':os.getenv('RENDER_GIT_COMMIT','unversioned'),
                               'calculation_time_utc':now.isoformat(),'status':'research prototype',
-                              'late_correction':'experimental separate result; noon methods preserved'}
+                              'late_correction':'experimental separate result; noon methods preserved',
+                              'latest_used_observation_utc':result['input_cutoff_utc'],
+                              'evening_update_applied':result['evening_update_applied']}
         identity=result['forecast_id']
         result['forecast_id']=identity
         if archive:
@@ -74,11 +86,12 @@ class Store:
                 if old.stat().st_mtime < (now-timedelta(days=30)).timestamp():old.unlink()
         self.result=result;self.observations=records;self.meta=meta
     def refresh(self):
-        if time.monotonic()-self.checked<self.ttl:return
+        if self.next_check_utc and datetime.now(timezone.utc)<self.next_check_utc:return
         if not self.lock.acquire(blocking=False):return
         try:
-            if time.monotonic()-self.checked<self.ttl:return
+            if self.next_check_utc and datetime.now(timezone.utc)<self.next_check_utc:return
             self.checked=time.monotonic()
+            self.next_check_utc=next_check(datetime.now(timezone.utc))
             records,meta=(fetch_noaa if self.provider=='noaa' else fetch)(self.folder)
             if self.result is None or meta['sha256']!=self.meta.get('sha256'):
                 self.calculate(records,meta)
@@ -94,7 +107,9 @@ class Store:
         return {'status':'ok' if self.result and not self.error and age is not None and age<=48 else 'degraded',
                 'forecast_available':self.result is not None,'latest_measurement_age_hours':age,
                 'source_error':self.error,'storage_durable':os.getenv('F107_DURABLE_STORAGE','false')=='true',
-                'scheduled_updates_guaranteed':False,'poll_interval_seconds':self.ttl,
+                'scheduled_updates_guaranteed':False,'poll_interval_seconds':None,
+                'next_check_utc':self.next_check_utc.isoformat() if self.next_check_utc else None,
+                'schedule_utc':'20:45 and 23:45 March-October; 20:45 and 22:45 November-February; also once at process startup',
                 'issue_policy':'noon and evening when new inputs arrive; source corrections create revised issues'}
 
 store=Store()
@@ -104,7 +119,8 @@ async def lifespan(app):
     async def poll():
         while True:
             await asyncio.to_thread(store.refresh)
-            await asyncio.sleep(store.ttl)
+            delay=(store.next_check_utc-datetime.now(timezone.utc)).total_seconds()
+            await asyncio.sleep(max(1,delay))
     task=asyncio.create_task(poll())
     yield
     task.cancel()

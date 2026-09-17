@@ -11,5 +11,3 @@ services:
         value: noaa
       - key: PYTHON_VERSION
         value: 3.12.10
-      - key: F107_REFRESH_SECONDS
-        value: 300

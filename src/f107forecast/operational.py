@@ -17,6 +17,9 @@ def make_issue(records,config=Config()):
             'parameters':config.json(),'model_version':result['model_version']}
     result['forecast_id']=hashlib.sha256(json.dumps(inputs,sort_keys=True).encode()).hexdigest()
     result['issue_stage']=stage
+    result['evening_observation']=late.json() if late else None
+    result['evening_update_applied']=late is not None
+    result['noon_input_cutoff_utc']=noon.isoformat()
     result['input_cutoff_utc']=(late.time if late else noon).isoformat()
     result['method_input_cutoffs']={name:noon.isoformat() for name in result['methods']}
     if late:

@@ -4,7 +4,7 @@ Adaptive Kalman Forecasting of F10.7. **Research prototype, 0.1.0.dev1. Not a va
 
 An independent modern implementation of the short-term solar radio-flux forecasting research line developed by Olena Podladchikova during her work at the Royal Observatory of Belgium / SIDC-STCE. Two historical posters motivate a scalar random walk with adaptive drift and a Kalman regression. The original source has not been located: this repository does **not** claim to reproduce original numerical outputs.
 
-Only official Canadian Penticton observations are used. This is not a forecast issued by ROB/STCE or the Government of Canada. Original source, private working notes and institutional assets are excluded.
+Only official Canadian Penticton observations are used. Independent research software. Not an official NOAA forecast. Original source, private working notes and institutional assets are excluded.
 
 ## Run
 
@@ -47,7 +47,7 @@ The service returns explicit HTTP 503 when observations are absent or warmup is 
 
 ## Deployment
 
-`render.yaml` defines a single FastAPI web service. The current Free plan configuration is a preview, with checks every 5 minutes while the process is awake and refresh-on-request. It does **not** guarantee two daily jobs. Render free instances sleep and have ephemeral disk; durable forecast-vintage retention and reliable daily scheduling need an explicit storage/scheduler deployment decision. See docs/DEPLOYMENT.md. No paid service was created.
+`render.yaml` defines a single FastAPI web service. Data checks run at 20:45 and 23:45 UTC in March–October, and 20:45 and 22:45 in November–February, plus once at process startup. The existing paid Render service runs this in-process scheduler; interrupted processes and delayed source publication can cause missed updates. There is no five-minute polling. Durable issued-forecast storage requires persistent storage. See docs/DEPLOYMENT.md.
 
 ## Development
 
@@ -56,3 +56,9 @@ python -m pytest -q
 ```
 
 See ALGORITHM_RECONSTRUCTION.md for exact implemented equations and omissions; HISTORY.md and REFERENCES.md distinguish the two historical author lists. The code is MIT licensed. Data/source publications retain their own terms.
+
+## Additional afternoon observation
+
+The NOAA adapter retains Noon and Afternoon records with their original time tags and precision. A same-date Afternoon record produces a separate experimental changing-trend Kalman correction; the daily drift and original noon methods remain unchanged. Model noise adapts from daily innovations; measurement noise is specified separately. Forecast skill and interval coverage of the afternoon correction remain unvalidated.
+
+NOAA afternoon tags can differ from the documented seasonal Penticton measurement schedule. Fractional-day propagation uses the NOAA time tag as an explicit modelling assumption, without silently shifting it to the seasonal hour. This is not a verification of physical measurement timing.
