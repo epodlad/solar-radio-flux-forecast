@@ -62,3 +62,13 @@ See ALGORITHM_RECONSTRUCTION.md for exact implemented equations and omissions; H
 The NOAA adapter retains Noon and Afternoon records with their original time tags and precision. A same-date Afternoon record produces a separate experimental changing-trend Kalman correction; the daily drift and original noon methods remain unchanged. Model noise adapts from daily innovations; measurement noise is specified separately. Forecast skill and interval coverage of the afternoon correction remain unvalidated.
 
 NOAA afternoon tags can differ from the documented seasonal Penticton measurement schedule. Fractional-day propagation uses the NOAA time tag as an explicit modelling assumption, without silently shifting it to the seasonal hour. This is not a verification of physical measurement timing.
+
+## Why adaptive Kalman filtering?
+
+The adaptive Kalman approach combines the recent trend with each new observation, balancing their uncertainties. In our changing-trend model, the estimated model-noise level adapts as daily observations arrive, while measurement uncertainty is specified separately. It estimates the underlying signal; it does not predict random noise. An additional afternoon observation can update the estimated flux and its forecast before the next main observation.
+
+## Possible future development: faster updates
+
+Measurements from other solar radio observatories, at other frequencies and observing times, could help identify rapid changes between Penticton observations, including radio bursts associated with flares. A future extension could test whether these measurements improve short-term F10.7 updates. Before combining them, we would need to check data latency, quality, cross-calibration and their relationship to F10.7. A burst at another frequency does not by itself imply a lasting change in F10.7. These additional sources are not currently used, and this service does not predict the onset of solar flares.
+
+Background: [NOAA solar radio datasets](https://www.ncei.noaa.gov/products/space-weather/legacy-data/solar-radio-datasets).
